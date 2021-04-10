@@ -5070,11 +5070,11 @@ String VisualShaderNodeTextureUniformTriplanar::generate_code(Shader::Mode p_mod
 	String id = get_uniform_name();
 	String code = "	{\n";
 
-	if (p_input_vars[0] == String() && p_input_vars[1] == String()) {
+	if (p_input_vars[0].is_empty() && p_input_vars[1].is_empty()) {
 		code += "		vec4 n_tex_read = triplanar_texture(" + id + ", triplanar_power_normal, triplanar_pos);\n";
-	} else if (p_input_vars[0] != String() && p_input_vars[1] == String()) {
+	} else if (!p_input_vars[0].is_empty() && p_input_vars[1].is_empty()) {
 		code += "		vec4 n_tex_read = triplanar_texture(" + id + ", " + p_input_vars[0] + ", triplanar_pos);\n";
-	} else if (p_input_vars[0] == String() && p_input_vars[1] != String()) {
+	} else if (p_input_vars[0].is_empty() && !p_input_vars[1].is_empty()) {
 		code += "		vec4 n_tex_read = triplanar_texture(" + id + ", triplanar_power_normal, " + p_input_vars[1] + ");\n";
 	} else {
 		code += "		vec4 n_tex_read = triplanar_texture(" + id + ", " + p_input_vars[0] + ", " + p_input_vars[1] + ");\n";

@@ -764,7 +764,7 @@ void EditorHelp::_update_doc() {
 			class_desc->push_cell();
 			class_desc->push_font(doc_code_font);
 
-			if (cd.is_script_doc && (cd.properties[i].setter != "" || cd.properties[i].getter != "")) {
+			if (cd.is_script_doc && (!cd.properties[i].setter.is_empty() || !cd.properties[i].getter.is_empty())) {
 				class_desc->push_color(symbol_color);
 				class_desc->add_text(" [" + TTR("property:") + " ");
 				class_desc->pop(); // color
@@ -1253,7 +1253,7 @@ void EditorHelp::_update_doc() {
 				class_desc->pop(); // color
 			}
 
-			if (cd.is_script_doc && (cd.properties[i].setter != "" || cd.properties[i].getter != "")) {
+			if (cd.is_script_doc && (!cd.properties[i].setter.is_empty() || !cd.properties[i].getter.is_empty())) {
 				class_desc->push_color(symbol_color);
 				class_desc->add_text(" [" + TTR("property:") + " ");
 				class_desc->pop(); // color
