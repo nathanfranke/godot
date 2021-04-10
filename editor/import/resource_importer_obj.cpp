@@ -301,7 +301,7 @@ static Error _parse_obj(const String &p_path, List<Ref<Mesh>> &r_meshes, bool p_
 						surf_tool->set_normal(normals[norm]);
 					}
 
-					if (face[idx].size() >= 2 && face[idx][1] != String()) {
+					if (face[idx].size() >= 2 && !face[idx][1].is_empty()) {
 						int uv = face[idx][1].to_int() - 1;
 						if (uv < 0) {
 							uv += uvs.size() + 1;
