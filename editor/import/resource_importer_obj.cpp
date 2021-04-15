@@ -235,7 +235,7 @@ static Error _parse_obj(const String &p_path, List<Ref<Mesh>> &r_meshes, bool p_
 		while (l.length() && l[l.length() - 1] == '\\') {
 			String add = f->get_line().strip_edges();
 			l += add;
-			if (add == String()) {
+			if (add.is_empty()) {
 				break;
 			}
 		}
@@ -363,9 +363,9 @@ static Error _parse_obj(const String &p_path, List<Ref<Mesh>> &r_meshes, bool p_
 
 				mesh = surf_tool->commit(mesh, mesh_flags);
 
-				if (current_material != String()) {
+				if (!current_material.is_empty()) {
 					mesh->surface_set_name(mesh->get_surface_count() - 1, current_material.get_basename());
-				} else if (current_group != String()) {
+				} else if (!current_group.is_empty()) {
 					mesh->surface_set_name(mesh->get_surface_count() - 1, current_group);
 				}
 

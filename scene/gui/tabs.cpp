@@ -50,7 +50,7 @@ Size2 Tabs::get_minimum_size() const {
 		Ref<Texture2D> tex = tabs[i].icon;
 		if (tex.is_valid()) {
 			ms.height = MAX(ms.height, tex->get_size().height);
-			if (tabs[i].text != "") {
+			if (!tabs[i].text.is_empty()) {
 				ms.width += get_theme_constant("hseparation");
 			}
 		}
@@ -361,7 +361,7 @@ void Tabs::_notification(int p_what) {
 					} else {
 						icon->draw(ci, Point2i(w, sb->get_margin(SIDE_TOP) + ((sb_rect.size.y - sb_ms.y) - icon->get_height()) / 2));
 					}
-					if (tabs[i].text != "") {
+					if (!tabs[i].text.is_empty()) {
 						w += icon->get_width() + get_theme_constant("hseparation");
 					}
 				}
@@ -957,7 +957,7 @@ int Tabs::get_tab_width(int p_idx) const {
 	Ref<Texture2D> tex = tabs[p_idx].icon;
 	if (tex.is_valid()) {
 		x += tex->get_width();
-		if (tabs[p_idx].text != "") {
+		if (!tabs[p_idx].text.is_empty()) {
 			x += get_theme_constant("hseparation");
 		}
 	}
