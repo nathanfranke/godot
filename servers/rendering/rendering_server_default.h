@@ -577,7 +577,7 @@ public:
 	FUNC1RC(float, viewport_get_measured_render_time_cpu, RID)
 	FUNC1RC(float, viewport_get_measured_render_time_gpu, RID)
 
-	FUNC2(call_set_vsync_mode, DisplayServer::VSyncMode, DisplayServer::WindowID)
+	FUNC1(call_set_use_vsync, bool)
 
 	/* ENVIRONMENT API */
 

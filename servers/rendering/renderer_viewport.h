@@ -271,8 +271,8 @@ public:
 	int get_total_vertices_drawn() const;
 	int get_total_draw_calls_used() const;
 
-	// Workaround for setting this on thread.
-	void call_set_vsync_mode(DisplayServer::VSyncMode p_mode, DisplayServer::WindowID p_window);
+	//workaround for setting this on thread
+	void call_set_use_vsync(bool p_enable);
 
 	RendererViewport();
 	virtual ~RendererViewport() {}
