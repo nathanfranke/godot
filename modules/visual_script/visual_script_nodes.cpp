@@ -1917,7 +1917,7 @@ PropertyInfo VisualScriptClassConstant::get_input_value_port_info(int p_idx) con
 }
 
 PropertyInfo VisualScriptClassConstant::get_output_value_port_info(int p_idx) const {
-	if (name == "") {
+	if (name.is_empty()) {
 		return PropertyInfo(Variant::INT, String(base_type));
 	} else {
 		return PropertyInfo(Variant::INT, String(base_type) + "." + String(name));
