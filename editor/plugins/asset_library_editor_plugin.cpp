@@ -1218,7 +1218,7 @@ void EditorAssetLibrary::_http_request_completed(int p_status, int p_code, const
 				item->connect("author_selected", callable_mp(this, &EditorAssetLibrary::_select_author));
 				item->connect("category_selected", callable_mp(this, &EditorAssetLibrary::_select_category));
 
-				if (r.has("icon_url") && r["icon_url"] != "") {
+				if (r.has("icon_url") && !r["icon_url"].operator String().is_empty()) {
 					_request_image(item->get_instance_id(), r["icon_url"], IMAGE_QUEUE_ICON, 0);
 				}
 			}
@@ -1255,7 +1255,7 @@ void EditorAssetLibrary::_http_request_completed(int p_status, int p_code, const
 
 			description->configure(r["title"], r["asset_id"], category_map[r["category_id"]], r["category_id"], r["author"], r["author_id"], r["cost"], r["version"], r["version_string"], r["description"], r["download_url"], r["browse_url"], r["download_hash"]);
 
-			if (r.has("icon_url") && r["icon_url"] != "") {
+			if (r.has("icon_url") && !r["icon_url"].operator String().is_empty()) {
 				_request_image(description->get_instance_id(), r["icon_url"], IMAGE_QUEUE_ICON, 0);
 			}
 
