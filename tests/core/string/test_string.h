@@ -1443,7 +1443,7 @@ TEST_CASE("[String] Variant ptr indexed set") {
 TEST_CASE("[Stress][String] Empty via ' == String()'") {
 	for (int i = 0; i < 100000; ++i) {
 		String str = "Hello World!";
-		if (str == String()) {
+		if (str.is_empty()) {
 			continue;
 		}
 	}

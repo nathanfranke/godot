@@ -343,7 +343,7 @@ void EditorAssetLibraryItemDownload::_http_download_completed(int p_status, int 
 			if (p_code != 200) {
 				error_text = TTR("Request failed, return code:") + " " + itos(p_code);
 				status->set_text(TTR("Failed:") + " " + itos(p_code));
-			} else if (sha256 != "") {
+			} else if (!sha256.is_empty()) {
 				String download_sha256 = FileAccess::get_sha256(download->get_download_file());
 				if (sha256 != download_sha256) {
 					error_text = TTR("Bad download hash, assuming file has been tampered with.") + "\n";
@@ -354,7 +354,7 @@ void EditorAssetLibraryItemDownload::_http_download_completed(int p_status, int 
 		} break;
 	}
 
-	if (error_text != String()) {
+	if (!error_text.is_empty()) {
 		download_error->set_text(TTR("Asset Download Error:") + "\n" + error_text);
 		download_error->popup_centered();
 		// Let the user retry the download.
@@ -921,7 +921,7 @@ void EditorAssetLibrary::_search(int p_page) {
 			support_list += String(support_key[i]) + "+";
 		}
 	}
-	if (support_list != String()) {
+	if (!support_list.is_empty()) {
 		args += "&support=" + support_list.substr(0, support_list.length() - 1);
 	}
 
@@ -934,7 +934,7 @@ void EditorAssetLibrary::_search(int p_page) {
 		args += "&reverse=true";
 	}
 
-	if (filter->get_text() != String()) {
+	if (!filter->get_text().is_empty()) {
 		args += "&filter=" + filter->get_text().uri_encode();
 	}
 
@@ -1187,7 +1187,7 @@ void EditorAssetLibrary::_http_request_completed(int p_status, int p_code, const
 			library_vb->add_child(asset_bottom_page);
 
 			if (result.is_empty()) {
-				if (filter->get_text() != String()) {
+				if (!filter->get_text().is_empty()) {
 					library_error->set_text(
 							vformat(TTR("No results for \"%s\"."), filter->get_text()));
 				} else {

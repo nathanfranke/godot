@@ -130,7 +130,7 @@ void EditorPath::update_path() {
 					name = r->get_name();
 				}
 
-				if (name == "") {
+				if (name.is_empty()) {
 					name = r->get_class();
 				}
 			} else if (obj->is_class("EditorDebuggerRemoteObject")) {
