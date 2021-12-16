@@ -9,9 +9,9 @@ if os.name == "nt":
 
 
 android_arch_dirs = {
-    "armv7": "armeabi-v7a",
-    "arm64v8": "arm64-v8a",
-    "x86": "x86",
+    "arm32": "armeabi-v7a",
+    "arm64": "arm64-v8a",
+    "x86_32": "x86",
     "x86_64": "x86_64",
 }
 
@@ -20,7 +20,7 @@ def get_android_out_dir(env):
     return os.path.join(
         Dir("#platform/android/java/lib/libs").abspath,
         "release" if env["target"] == "release" else "debug",
-        android_arch_dirs[env["android_arch"]],
+        android_arch_dirs[env["arch"]],
     )
 
 
@@ -101,8 +101,8 @@ def configure(env, env_mono):
 
     mono_lib_names = ["mono-2.0-sgen", "monosgen-2.0"]
 
-    if is_android and not env["android_arch"] in android_arch_dirs:
-        raise RuntimeError("This module does not support the specified 'android_arch': " + env["android_arch"])
+    if is_android and not env["arch"] in android_arch_dirs:
+        raise RuntimeError("This module does not support the specified 'arch': " + env["arch"])
 
     if tools_enabled and not module_supports_tools_on(env["platform"]):
         # TODO:

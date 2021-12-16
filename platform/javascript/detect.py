@@ -53,6 +53,16 @@ def get_flags():
 
 
 def configure(env):
+    if env["arch"] == "wasm32":
+        print("Building for JavaScript, architecture wasm32.")
+        # TODO: Add code that explicitly tells the compiler to target wasm32.
+    else:
+        # TODO: Add support for 64-bit WebAssembly. Whenever that starts existing.
+        print("Unsupported CPU architecture: " + env["arch"] + ". Only wasm32 is supported on JavaScript.")
+        from sys import exit
+
+        exit()
+
     try:
         env["initial_memory"] = int(env["initial_memory"])
     except Exception:

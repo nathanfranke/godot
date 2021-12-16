@@ -8,6 +8,7 @@ import atexit
 import glob
 import os
 import pickle
+import platform
 import sys
 import time
 from types import ModuleType
@@ -164,12 +165,28 @@ opts.Add("p", "Platform (alias for 'platform')", "")
 opts.Add("platform", "Target platform (%s)" % ("|".join(platform_list),), "")
 opts.Add(BoolVariable("tools", "Build the tools (a.k.a. the Godot editor)", True))
 opts.Add(EnumVariable("target", "Compilation target", "debug", ("debug", "release_debug", "release")))
-opts.Add("arch", "Platform-dependent architecture (arm/arm64/x86/x64/mips/...)", "")
-opts.Add(EnumVariable("bits", "Target platform bits", "default", ("default", "32", "64")))
 opts.Add(EnumVariable("float", "Floating-point precision", "default", ("default", "32", "64")))
 opts.Add(EnumVariable("optimize", "Optimization type", "speed", ("speed", "size", "none")))
 opts.Add(BoolVariable("production", "Set defaults to build Godot for use in production", False))
 opts.Add(BoolVariable("use_lto", "Use link-time optimization", False))
+
+# CPU architecture options.
+architectures = ["", "universal", "x86_32", "x86_64", "arm32", "arm64", "rv64", "ppc32", "ppc64", "wasm32"]
+architecture_aliases = {
+    "x64": "x86_64",
+    "amd64": "x86_64",
+    "armv7": "arm32",
+    "armv8": "arm64",
+    "arm64v8": "arm64",
+    "aarch64": "arm64",
+    "rv": "rv64",
+    "riscv": "rv64",
+    "riscv64": "rv64",
+    "ppcle": "ppc32",
+    "ppc": "ppc32",
+    "ppc64le": "ppc64",
+}
+opts.Add(EnumVariable("arch", "CPU architecture", "", architectures, architecture_aliases))
 
 # Components
 opts.Add(BoolVariable("deprecated", "Enable compatibility code for deprecated and removed features", True))
@@ -279,9 +296,45 @@ if selected_platform in ["linux", "bsd", "x11"]:
     # Alias for convenience.
     selected_platform = "linuxbsd"
 
+# CPU architecture selection.
+arch = env_base["arch"]
+if arch == "":
+    # No architecture specified. Default to arm64 if building for mobile,
+    # universal if building for macOS, wasm32 if building for web,
+    # otherwise default to the host architecture.
+    if selected_platform == "osx":
+        arch = "universal"
+    if selected_platform in ["android", "iphone"]:
+        arch = "arm64"
+    elif selected_platform == "javascript":
+        arch = "wasm32"
+    else:
+        host_machine = platform.machine().lower()
+        if host_machine in architectures:
+            arch = host_machine
+        elif host_machine in architecture_aliases.keys():
+            arch = architecture_aliases[host_machine]
+        elif "86" in host_machine:
+            # Catches x86, i386, i486, i586, i686, etc.
+            arch = "x86_32"
+        else:
+            print("Unsupported CPU architecture: " + host_machine)
+            Exit()
+
+if "32" in arch:
+    env_base["bits"] = "32"
+elif "64" in arch:
+    env_base["bits"] = "64"
+elif arch == "universal":
+    env_base["bits"] = "64"
+else:
+    print("Unknown bitness of CPU architecture: " + arch)
+    Exit()
+
 # Make sure to update this to the found, valid platform as it's used through the buildsystem as the reference.
 # It should always be re-set after calling `opts.Update()` otherwise it uses the original input value.
 env_base["platform"] = selected_platform
+env_base["arch"] = arch
 
 # Add platform-specific options.
 if selected_platform in platform_opts:
@@ -291,6 +344,7 @@ if selected_platform in platform_opts:
 # Update the environment to take platform-specific options into account.
 opts.Update(env_base)
 env_base["platform"] = selected_platform  # Must always be re-set after calling opts.Update().
+env_base["arch"] = arch  # Must always be re-set after calling opts.Update().
 
 # Detect modules.
 modules_detected = OrderedDict()
@@ -345,6 +399,7 @@ methods.write_modules(modules_detected)
 # Update the environment again after all the module options are added.
 opts.Update(env_base)
 env_base["platform"] = selected_platform  # Must always be re-set after calling opts.Update().
+env_base["arch"] = arch  # Must always be re-set after calling opts.Update().
 Help(opts.GenerateHelpText(env_base))
 
 # add default include paths
@@ -672,13 +727,7 @@ if selected_platform in platform_list:
             )
             suffix += ".debug"
 
-    if env["arch"] != "":
-        suffix += "." + env["arch"]
-    elif env["bits"] == "32":
-        suffix += ".32"
-    elif env["bits"] == "64":
-        suffix += ".64"
-
+    suffix += "." + env["arch"]
     suffix += env.extra_suffix
 
     sys.path.remove(tmppath)

@@ -46,6 +46,7 @@ def can_build():
 def get_opts():
     from SCons.Variables import BoolVariable, EnumVariable
 
+    # TODO: These shouldn't be hard-coded for x86.
     mingw32 = ""
     mingw64 = ""
     if os.name == "posix":
@@ -81,6 +82,7 @@ def get_flags():
 
 
 def build_res_file(target, source, env):
+    # TODO: This shouldn't be hard-coded for x86.
     if env["bits"] == "32":
         cmdbase = env["mingw_prefix_32"]
     else:
@@ -100,6 +102,8 @@ def build_res_file(target, source, env):
 
 
 def setup_msvc_manual(env):
+    # TODO: Not sure what to do about this. With the code in SConstruct,
+    # arch and bits will both always be set, and never "default".
     """Set up env to use MSVC manually, using VCINSTALLDIR"""
     if env["bits"] != "default":
         print(
@@ -113,6 +117,10 @@ def setup_msvc_manual(env):
 
     # Force bits arg
     # (Actually msys2 mingw can support 64-bit, we could detect that)
+    # TODO: This is wrong, but not sure what to do about it.
+    # We want to determine the arch and bitness in the SConstruct only.
+    # We can check if it's correct in here, but if it's not, it should
+    # just fail with an error message instead of trying to force it.
     env["bits"] = "32"
     env["x86_libtheora_opt_vc"] = True
 
@@ -141,6 +149,18 @@ def setup_msvc_auto(env):
     # If MSVC_VERSION is set by SCons, we know MSVC is installed.
     # But we may want a different version or target arch.
 
+    # Valid architectures for MSVC's TARGET_ARCH:
+    # ['amd64', 'emt64', 'i386', 'i486', 'i586', 'i686', 'ia64', 'itanium', 'x86', 'x86_64', 'arm', 'arm64', 'aarch64']
+    # Our x86_64 and arm64 are the same, and we need to map the 32-bit
+    # architectures to other names since MSVC isn't as explicit.
+    # The rest we don't need to worry about because they are
+    # aliases or aren't supported by Godot (itanium & ia64).
+    msvc_arch_aliases = {"x86_32": "x86", "arm32": "arm"}
+    if env["arch"] in msvc_arch_aliases.keys():
+        env["TARGET_ARCH"] = msvc_arch_aliases[env["arch"]]
+    else:
+        env["TARGET_ARCH"] = env["arch"]
+
     # The env may have already been set up with default MSVC tools, so
     # reset a few things so we can set it up with the tools we want.
     # (Ideally we'd decide on the tool config before configuring any
@@ -149,21 +169,14 @@ def setup_msvc_auto(env):
     env["MSVC_SETUP_RUN"] = False  # Need to set this to re-run the tool
     env["MSVS_VERSION"] = None
     env["MSVC_VERSION"] = None
-    env["TARGET_ARCH"] = None
-    if env["bits"] != "default":
-        env["TARGET_ARCH"] = {"32": "x86", "64": "x86_64"}[env["bits"]]
+
     if "msvc_version" in env:
         env["MSVC_VERSION"] = env["msvc_version"]
     env.Tool("msvc")
     env.Tool("mssdk")  # we want the MS SDK
     # Note: actual compiler version can be found in env['MSVC_VERSION'], e.g. "14.1" for VS2015
-    # Get actual target arch into bits (it may be "default" at this point):
-    if env["TARGET_ARCH"] in ("amd64", "x86_64"):
-        env["bits"] = "64"
-    else:
-        env["bits"] = "32"
-    print("Found MSVC version %s, arch %s, bits=%s" % (env["MSVC_VERSION"], env["TARGET_ARCH"], env["bits"]))
-    if env["TARGET_ARCH"] in ("amd64", "x86_64"):
+    print("Found MSVC version %s, arch %s" % (env["MSVC_VERSION"], env["TARGET_ARCH"]))
+    if env["arch"] == "x86_32":
         env["x86_libtheora_opt_vc"] = False
 
 
@@ -361,14 +374,11 @@ def configure_mingw(env):
     if os.name != "nt":
         env["PROGSUFFIX"] = env["PROGSUFFIX"] + ".exe"  # for linux cross-compilation
 
-    if env["bits"] == "default":
-        if os.name == "nt":
-            env["bits"] = "64" if "PROGRAMFILES(X86)" in os.environ else "32"
-        else:  # default to 64-bit on Linux
-            env["bits"] = "64"
-
     mingw_prefix = ""
 
+    # TODO: This doesn't seem to be working, or maybe I just have
+    # MinGW set up incorrectly. It always gives me x86_64 builds,
+    # even though bits == "32" and the file name has x86_32 in it.
     if env["bits"] == "32":
         if env["use_static_cpp"]:
             env.Append(LINKFLAGS=["-static"])
@@ -458,7 +468,7 @@ def configure(env):
     # At this point the env has been set up with basic tools/compilers.
     env.Prepend(CPPPATH=["#platform/windows"])
 
-    print("Configuring for Windows: target=%s, bits=%s" % (env["target"], env["bits"]))
+    print("Building for Windows, target %s, architecture %s." % (env["target"], env["arch"]))
 
     if os.name == "nt":
         env["ENV"] = os.environ  # this makes build less repeatable, but simplifies some things

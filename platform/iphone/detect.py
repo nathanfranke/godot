@@ -43,6 +43,14 @@ def get_flags():
 
 def configure(env):
     ## Build type
+    if env["arch"] not in ["arm64", "x86_64"]:
+        # iOS no longer runs 32-bit apps as of iOS 11 which was
+        # released in 2017. As such, we only support 64-bit.
+        # x86_64 is only for the iOS simulator for x86_64 Macs.
+        print("Unsupported CPU architecture: " + env["arch"] + ". Only arm64 and x86_64 are supported on iOS.")
+        from sys import exit
+
+        exit()
 
     if env["target"].startswith("release"):
         env.Append(CPPDEFINES=["NDEBUG", ("NS_BLOCK_ASSERTIONS", 1)])
@@ -63,11 +71,6 @@ def configure(env):
     if env["use_lto"]:
         env.Append(CCFLAGS=["-flto"])
         env.Append(LINKFLAGS=["-flto"])
-
-    ## Architecture
-    env["bits"] = "64"
-    if env["arch"] != "x86_64":
-        env["arch"] = "arm64"
 
     ## Compiler configuration
 

@@ -432,9 +432,9 @@ MONO_AOT_MODE_LAST = 1000,
 
                 var androidToolPrefixes = new Dictionary<string, string>
                 {
-                    ["armeabi-v7a"] = "arm-linux-androideabi-",
-                    ["arm64-v8a"] = "aarch64-linux-android-",
-                    ["x86"] = "i686-linux-android-",
+                    ["arm32"] = "arm-linux-androideabi-",
+                    ["arm64"] = "aarch64-linux-android-",
+                    ["x86_32"] = "i686-linux-android-",
                     ["x86_64"] = "x86_64-linux-android-"
                 };
 
@@ -547,9 +547,9 @@ MONO_AOT_MODE_LAST = 1000,
         {
             var androidAbis = new[]
             {
-                "armeabi-v7a",
-                "arm64-v8a",
-                "x86",
+                "arm32",
+                "arm64",
+                "x86_32",
                 "x86_64"
             };
 
@@ -560,9 +560,9 @@ MONO_AOT_MODE_LAST = 1000,
         {
             var abiArchs = new Dictionary<string, string>
             {
-                ["armeabi-v7a"] = "armv7",
-                ["arm64-v8a"] = "aarch64-v8a",
-                ["x86"] = "i686",
+                ["arm32"] = "armv7",
+                ["arm64"] = "aarch64-v8a",
+                ["x86_32"] = "i686",
                 ["x86_64"] = "x86_64"
             };
 
@@ -573,6 +573,7 @@ MONO_AOT_MODE_LAST = 1000,
 
         private static string GetMonoCrossDesktopDirName(string platform, string bits)
         {
+            // TODO: This method shouldn't be hard-coded for x86.
             switch (platform)
             {
                 case OS.Platforms.Windows:
