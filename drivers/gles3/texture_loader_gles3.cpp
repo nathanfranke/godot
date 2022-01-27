@@ -48,21 +48,14 @@ RES ResourceFormatGLES2Texture::load(const String &p_path, const String &p_origi
 
 	dstbuff.resize(rowsize * height);
 
-	uint8_t **row_p = memnew_arr(uint8_t *, height);
-
-	for (unsigned int i = 0; i < height; i++) {
-		row_p[i] = 0; //No colors any more, I want them to turn black
-	}
-
-	memdelete_arr(row_p);
-
 	Ref<Image> img = memnew(Image(width, height, 0, fmt, dstbuff));
 
 	Ref<ImageTexture> texture = memnew(ImageTexture);
 	texture->create_from_image(img);
 
-	if (r_error)
+	if (r_error) {
 		*r_error = OK;
+	}
 
 	return texture;
 }
