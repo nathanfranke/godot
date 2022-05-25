@@ -320,37 +320,35 @@ void GodotSoftBody3D::apply_nodes_transform(const Transform3D &p_transform) {
 }
 
 Vector3 GodotSoftBody3D::get_vertex_position(int p_index) const {
-	ERR_FAIL_COND_V(p_index < 0, Vector3());
+	ERR_FAIL_INDEX_V(p_index, map_visual_to_physics.size(), Vector3());
 
 	if (soft_mesh.is_null()) {
 		return Vector3();
 	}
 
-	ERR_FAIL_COND_V(p_index >= (int)map_visual_to_physics.size(), Vector3());
 	uint32_t node_index = map_visual_to_physics[p_index];
+	ERR_FAIL_INDEX_V(node_index, nodes.size(), Vector3());
 
-	ERR_FAIL_COND_V(node_index >= nodes.size(), Vector3());
 	return nodes[node_index].x;
 }
 
 void GodotSoftBody3D::set_vertex_position(int p_index, const Vector3 &p_position) {
-	ERR_FAIL_COND(p_index < 0);
+	ERR_FAIL_INDEX(p_index, map_visual_to_physics.size());
 
 	if (soft_mesh.is_null()) {
 		return;
 	}
 
-	ERR_FAIL_COND(p_index >= (int)map_visual_to_physics.size());
 	uint32_t node_index = map_visual_to_physics[p_index];
+	ERR_FAIL_INDEX(node_index, nodes.size());
 
-	ERR_FAIL_COND(node_index >= nodes.size());
 	Node &node = nodes[node_index];
 	node.q = node.x;
 	node.x = p_position;
 }
 
 void GodotSoftBody3D::pin_vertex(int p_index) {
-	ERR_FAIL_COND(p_index < 0);
+	ERR_FAIL_INDEX(p_index, map_visual_to_physics.size());
 
 	if (is_vertex_pinned(p_index)) {
 		return;
@@ -358,38 +356,37 @@ void GodotSoftBody3D::pin_vertex(int p_index) {
 
 	pinned_vertices.push_back(p_index);
 
-	if (!soft_mesh.is_null()) {
-		ERR_FAIL_COND(p_index >= (int)map_visual_to_physics.size());
-		uint32_t node_index = map_visual_to_physics[p_index];
-
-		ERR_FAIL_COND(node_index >= nodes.size());
-		Node &node = nodes[node_index];
-		node.im = 0.0;
+	if (soft_mesh.is_null()) {
+		return;
 	}
+
+	uint32_t node_index = map_visual_to_physics[p_index];
+	ERR_FAIL_INDEX(node_index, nodes.size());
+
+	Node &node = nodes[node_index];
+	node.im = 0.0;
 }
 
 void GodotSoftBody3D::unpin_vertex(int p_index) {
-	ERR_FAIL_COND(p_index < 0);
+	ERR_FAIL_INDEX(p_index, map_visual_to_physics.size());
 
-	uint32_t pinned_count = pinned_vertices.size();
-	for (uint32_t i = 0; i < pinned_count; ++i) {
-		if (p_index == pinned_vertices[i]) {
-			pinned_vertices.remove_at(i);
-
-			if (!soft_mesh.is_null()) {
-				ERR_FAIL_COND(p_index >= (int)map_visual_to_physics.size());
-				uint32_t node_index = map_visual_to_physics[p_index];
-
-				ERR_FAIL_COND(node_index >= nodes.size());
-				real_t inv_node_mass = nodes.size() * inv_total_mass;
-
-				Node &node = nodes[node_index];
-				node.im = inv_node_mass;
-			}
-
-			return;
-		}
+	if (!is_vertex_pinned(p_index)) {
+		return;
 	}
+
+	pinned_vertices.erase(p_index);
+
+	if (soft_mesh.is_null()) {
+		return;
+	}
+
+	uint32_t node_index = map_visual_to_physics[p_index];
+	ERR_FAIL_INDEX(node_index, nodes.size());
+
+	real_t inv_node_mass = nodes.size() * inv_total_mass;
+
+	Node &node = nodes[node_index];
+	node.im = inv_node_mass;
 }
 
 void GodotSoftBody3D::unpin_all_vertices() {
@@ -412,16 +409,9 @@ void GodotSoftBody3D::unpin_all_vertices() {
 }
 
 bool GodotSoftBody3D::is_vertex_pinned(int p_index) const {
-	ERR_FAIL_COND_V(p_index < 0, false);
+	ERR_FAIL_INDEX_V(p_index, map_visual_to_physics.size(), false);
 
-	uint32_t pinned_count = pinned_vertices.size();
-	for (uint32_t i = 0; i < pinned_count; ++i) {
-		if (p_index == pinned_vertices[i]) {
-			return true;
-		}
-	}
-
-	return false;
+	return pinned_vertices.find(p_index) >= 0;
 }
 
 uint32_t GodotSoftBody3D::get_node_count() const {
