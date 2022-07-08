@@ -51,8 +51,8 @@ private:
 		bool operator==(const ObjectID &p_other) { return id == p_other; }
 
 		Node *get_node() const { return id.is_valid() ? Object::cast_to<Node>(ObjectDB::get_instance(id)) : nullptr; }
-		MultiplayerSpawner *get_spawner() const { return spawner.is_valid() ? Object::cast_to<MultiplayerSpawner>(ObjectDB::get_instance(spawner)) : nullptr; }
-		MultiplayerSynchronizer *get_synchronizer() const { return synchronizer.is_valid() ? Object::cast_to<MultiplayerSynchronizer>(ObjectDB::get_instance(synchronizer)) : nullptr; }
+		Node *get_spawner() const { return spawner.is_valid() ? Object::cast_to<Node>(ObjectDB::get_instance(spawner)) : nullptr; }
+		Node *get_synchronizer() const { return synchronizer.is_valid() ? Object::cast_to<Node>(ObjectDB::get_instance(synchronizer)) : nullptr; }
 		TrackedNode() {}
 		TrackedNode(const ObjectID &p_id) { id = p_id; }
 		TrackedNode(const ObjectID &p_id, uint32_t p_net_id) {
@@ -84,8 +84,8 @@ public:
 	const HashSet<ObjectID> &get_spawned_nodes() const { return spawned_nodes; }
 	const HashSet<ObjectID> &get_path_only_nodes() const { return path_only_nodes; }
 
-	MultiplayerSynchronizer *get_synchronizer(const ObjectID &p_id) { return tracked_nodes.has(p_id) ? tracked_nodes[p_id].get_synchronizer() : nullptr; }
-	MultiplayerSpawner *get_spawner(const ObjectID &p_id) { return tracked_nodes.has(p_id) ? tracked_nodes[p_id].get_spawner() : nullptr; }
+	Node *get_synchronizer(const ObjectID &p_id) { return tracked_nodes.has(p_id) ? tracked_nodes[p_id].get_synchronizer() : nullptr; }
+	Node *get_spawner(const ObjectID &p_id) { return tracked_nodes.has(p_id) ? tracked_nodes[p_id].get_spawner() : nullptr; }
 	Node *get_node(const ObjectID &p_id) { return tracked_nodes.has(p_id) ? tracked_nodes[p_id].get_node() : nullptr; }
 	bool update_last_node_sync(const ObjectID &p_id, uint16_t p_time);
 	bool update_sync_time(const ObjectID &p_id, uint64_t p_msec);
@@ -98,18 +98,18 @@ public:
 	void reset();
 	void on_peer_change(int p_peer, bool p_connected);
 
-	Error config_add_spawn(Node *p_node, MultiplayerSpawner *p_spawner);
-	Error config_del_spawn(Node *p_node, MultiplayerSpawner *p_spawner);
+	Error config_add_spawn(Node *p_node, Node *p_spawner);
+	Error config_del_spawn(Node *p_node, Node *p_spawner);
 
-	Error config_add_sync(Node *p_node, MultiplayerSynchronizer *p_sync);
-	Error config_del_sync(Node *p_node, MultiplayerSynchronizer *p_sync);
+	Error config_add_sync(Node *p_node, Node *p_sync);
+	Error config_del_sync(Node *p_node, Node *p_sync);
 
 	Error peer_add_node(int p_peer, const ObjectID &p_id);
 	Error peer_del_node(int p_peer, const ObjectID &p_id);
 
 	const HashMap<uint32_t, ObjectID> peer_get_remotes(int p_peer) const;
 	Node *peer_get_remote(int p_peer, uint32_t p_net_id);
-	Error peer_add_remote(int p_peer, uint32_t p_net_id, Node *p_node, MultiplayerSpawner *p_spawner);
+	Error peer_add_remote(int p_peer, uint32_t p_net_id, Node *p_node, Node *p_spawner);
 	Error peer_del_remote(int p_peer, uint32_t p_net_id, Node **r_node);
 
 	uint16_t peer_sync_next(int p_peer);

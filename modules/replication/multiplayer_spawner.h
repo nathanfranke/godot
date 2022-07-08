@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  multiplayer_synchronizer.h                                           */
+/*  multiplayer_spawner.h                                                */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,41 +28,82 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef MULTIPLAYER_SYNCHRONIZER_H
-#define MULTIPLAYER_SYNCHRONIZER_H
+#ifndef MULTIPLAYER_SPAWNER_H
+#define MULTIPLAYER_SPAWNER_H
 
 #include "scene/main/node.h"
 
+#include "core/templates/local_vector.h"
+#include "core/variant/typed_array.h"
+#include "scene/resources/packed_scene.h"
 #include "scene/resources/scene_replication_config.h"
 
-class MultiplayerSynchronizer : public Node {
-	GDCLASS(MultiplayerSynchronizer, Node);
+class MultiplayerSpawner : public Node {
+	GDCLASS(MultiplayerSpawner, Node);
+
+public:
+	enum {
+		INVALID_SCENE_INDEX = 0xFFFFFFFF,
+	};
 
 private:
-	Ref<SceneReplicationConfig> replication_config;
-	NodePath root_path = NodePath(".."); // Start with parent, like with AnimationPlayer.
-	uint64_t interval_msec = 0;
+	struct SpawnInfo {
+		int scene_index;
+		Variant custom_data;
+	};
 
-	void _start();
-	void _stop();
+	NodePath spawn_path;
+	uint32_t spawn_limit = 0;
+	bool auto_spawn = false;
+	Array spawnable_scenes;
+
+	Node *spawn_parent = nullptr;
+	HashMap<Node *, SpawnInfo> tracked_nodes;
+
+	void _update_spawn_node();
+	void _on_child_added(Node *p_node);
+
+	void _track(Node *p_node, int p_scene_index, const Variant &p_custom_data);
+	void _on_tracked_ready(Node *p_node);
+	void _on_tracked_exit(Node *p_node);
 
 protected:
 	static void _bind_methods();
 	void _notification(int p_what);
 
+// Editor-only array properties.
+#ifdef TOOLS_ENABLED
+	bool _set(const StringName &p_name, const Variant &p_value);
+	bool _get(const StringName &p_name, Variant &r_ret) const;
+	void _get_property_list(List<PropertyInfo> *p_list) const;
+#endif
+
 public:
-	void set_replication_interval(double p_interval);
-	double get_replication_interval() const;
-	uint64_t get_replication_interval_msec() const;
+	NodePath get_spawn_path() const;
+	void set_spawn_path(const NodePath &p_path);
 
-	void set_replication_config(Ref<SceneReplicationConfig> p_config);
-	Ref<SceneReplicationConfig> get_replication_config();
+	void set_spawn_limit(uint32_t p_limit);
+	uint32_t get_spawn_limit() const;
 
-	void set_root_path(const NodePath &p_path);
-	NodePath get_root_path() const;
-	virtual void set_multiplayer_authority(int p_peer_id, bool p_recursive = true) override;
+	void set_auto_spawn(bool p_auto_spawn);
+	bool get_auto_spawn() const;
 
-	MultiplayerSynchronizer() {}
+	Array get_spawnable_scenes() const;
+	void set_spawnable_scenes(const Array &p_scenes);
+
+	int find_spawnable_scene_index_from_path(String p_path) const;
+	int get_spawned_scene_index(Node *p_node) const;
+	Variant get_spawned_custom_data(Node *p_node) const;
+
+	Node *spawn(const Variant &p_data = Variant());
+	Node *instantiate_custom(const Variant &p_data);
+	Node *instantiate_scene(int p_idx);
+
+	GDVIRTUAL1R(Object *, _spawn_custom, const Variant &);
+
+	MultiplayerSpawner() {
+		//rpc_config(SNAME("test"), RPCMode::RPC_MODE_AUTHORITY, true);
+	}
 };
 
-#endif // MULTIPLAYER_SYNCHRONIZER_H
+#endif // MULTIPLAYER_SPAWNER_H

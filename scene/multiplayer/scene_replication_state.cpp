@@ -79,14 +79,14 @@ bool SceneReplicationState::update_last_node_sync(const ObjectID &p_id, uint16_t
 bool SceneReplicationState::update_sync_time(const ObjectID &p_id, uint64_t p_msec) {
 	TrackedNode *tnode = tracked_nodes.getptr(p_id);
 	ERR_FAIL_COND_V(!tnode, false);
-	MultiplayerSynchronizer *sync = get_synchronizer(p_id);
+	Node *sync = get_synchronizer(p_id);
 	if (!sync) {
 		return false;
 	}
 	if (tnode->last_sync_msec == p_msec) {
 		return true;
 	}
-	if (p_msec >= tnode->last_sync_msec + sync->get_replication_interval_msec()) {
+	if (p_msec >= tnode->last_sync_msec + (int)(((double)sync->call(SNAME("get_replication_interval"))) * 1000.0)) {
 		tnode->last_sync_msec = p_msec;
 		return true;
 	}
@@ -141,7 +141,7 @@ void SceneReplicationState::reset() {
 	}
 }
 
-Error SceneReplicationState::config_add_spawn(Node *p_node, MultiplayerSpawner *p_spawner) {
+Error SceneReplicationState::config_add_spawn(Node *p_node, Node *p_spawner) {
 	const ObjectID oid = p_node->get_instance_id();
 	TrackedNode &tobj = _track(oid);
 	ERR_FAIL_COND_V(tobj.spawner != ObjectID(), ERR_ALREADY_IN_USE);
@@ -152,7 +152,7 @@ Error SceneReplicationState::config_add_spawn(Node *p_node, MultiplayerSpawner *
 	return OK;
 }
 
-Error SceneReplicationState::config_del_spawn(Node *p_node, MultiplayerSpawner *p_spawner) {
+Error SceneReplicationState::config_del_spawn(Node *p_node, Node *p_spawner) {
 	const ObjectID oid = p_node->get_instance_id();
 	ERR_FAIL_COND_V(!is_tracked(oid), ERR_INVALID_PARAMETER);
 	TrackedNode &tobj = _track(oid);
@@ -162,7 +162,7 @@ Error SceneReplicationState::config_del_spawn(Node *p_node, MultiplayerSpawner *
 	return OK;
 }
 
-Error SceneReplicationState::config_add_sync(Node *p_node, MultiplayerSynchronizer *p_sync) {
+Error SceneReplicationState::config_add_sync(Node *p_node, Node *p_sync) {
 	const ObjectID oid = p_node->get_instance_id();
 	TrackedNode &tobj = _track(oid);
 	ERR_FAIL_COND_V(tobj.synchronizer != ObjectID(), ERR_ALREADY_IN_USE);
@@ -174,7 +174,7 @@ Error SceneReplicationState::config_add_sync(Node *p_node, MultiplayerSynchroniz
 	return OK;
 }
 
-Error SceneReplicationState::config_del_sync(Node *p_node, MultiplayerSynchronizer *p_sync) {
+Error SceneReplicationState::config_del_sync(Node *p_node, Node *p_sync) {
 	const ObjectID oid = p_node->get_instance_id();
 	ERR_FAIL_COND_V(!is_tracked(oid), ERR_INVALID_PARAMETER);
 	TrackedNode &tobj = _track(oid);
@@ -217,7 +217,7 @@ Node *SceneReplicationState::peer_get_remote(int p_peer, uint32_t p_net_id) {
 	return info && info->recv_nodes.has(p_net_id) ? Object::cast_to<Node>(ObjectDB::get_instance(info->recv_nodes[p_net_id])) : nullptr;
 }
 
-Error SceneReplicationState::peer_add_remote(int p_peer, uint32_t p_net_id, Node *p_node, MultiplayerSpawner *p_spawner) {
+Error SceneReplicationState::peer_add_remote(int p_peer, uint32_t p_net_id, Node *p_node, Node *p_spawner) {
 	ERR_FAIL_COND_V(!p_node || !p_spawner, ERR_INVALID_PARAMETER);
 	ERR_FAIL_COND_V(!peers_info.has(p_peer), ERR_UNAVAILABLE);
 	PeerInfo &pinfo = peers_info[p_peer];

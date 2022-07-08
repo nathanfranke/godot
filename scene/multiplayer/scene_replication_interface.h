@@ -40,7 +40,7 @@ class SceneReplicationInterface : public MultiplayerReplicationInterface {
 
 private:
 	void _send_sync(int p_peer, uint64_t p_msec);
-	Error _send_spawn(Node *p_node, MultiplayerSpawner *p_spawner, int p_peer);
+	Error _send_spawn(Node *p_node, Node *p_spawner, int p_peer);
 	Error _send_despawn(Node *p_node, int p_peer);
 	Error _send_raw(const uint8_t *p_buffer, int p_size, int p_peer, bool p_reliable);
 
@@ -58,6 +58,8 @@ private:
 
 protected:
 	static MultiplayerReplicationInterface *_create(MultiplayerAPI *p_multiplayer);
+
+	static Object *_get_prop_target(Object *p_obj, const NodePath &p_prop);
 
 public:
 	static void make_default();

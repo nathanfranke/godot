@@ -64,7 +64,7 @@ void SceneReplicationInterface::on_peer_change(int p_id, bool p_connected) {
 		}
 		for (const ObjectID &oid : rep_state->get_path_only_nodes()) {
 			Node *node = rep_state->get_node(oid);
-			MultiplayerSynchronizer *sync = rep_state->get_synchronizer(oid);
+			Node *sync = rep_state->get_synchronizer(oid);
 			ERR_CONTINUE(!node || !sync);
 			if (sync->is_multiplayer_authority()) {
 				rep_state->peer_add_node(p_id, oid);
@@ -93,7 +93,7 @@ void SceneReplicationInterface::on_network_process() {
 Error SceneReplicationInterface::on_spawn(Object *p_obj, Variant p_config) {
 	Node *node = Object::cast_to<Node>(p_obj);
 	ERR_FAIL_COND_V(!node || p_config.get_type() != Variant::OBJECT, ERR_INVALID_PARAMETER);
-	MultiplayerSpawner *spawner = Object::cast_to<MultiplayerSpawner>(p_config.get_validated_object());
+	Node *spawner = Object::cast_to<Node>(p_config.get_validated_object());
 	ERR_FAIL_COND_V(!spawner, ERR_INVALID_PARAMETER);
 	Error err = rep_state->config_add_spawn(node, spawner);
 	ERR_FAIL_COND_V(err != OK, err);
@@ -103,29 +103,47 @@ Error SceneReplicationInterface::on_spawn(Object *p_obj, Variant p_config) {
 Error SceneReplicationInterface::on_despawn(Object *p_obj, Variant p_config) {
 	Node *node = Object::cast_to<Node>(p_obj);
 	ERR_FAIL_COND_V(!node || p_config.get_type() != Variant::OBJECT, ERR_INVALID_PARAMETER);
-	MultiplayerSpawner *spawner = Object::cast_to<MultiplayerSpawner>(p_config.get_validated_object());
+	Node *spawner = Object::cast_to<Node>(p_config.get_validated_object());
 	ERR_FAIL_COND_V(!p_obj || !spawner, ERR_INVALID_PARAMETER);
 	Error err = rep_state->config_del_spawn(node, spawner);
 	ERR_FAIL_COND_V(err != OK, err);
 	return _send_despawn(node, 0);
 }
 
+Object *SceneReplicationInterface::_get_prop_target(Object *p_obj, const NodePath &p_path) {
+	if (p_path.get_name_count() == 0) {
+		return p_obj;
+	}
+	Node *node = Object::cast_to<Node>(p_obj);
+	ERR_FAIL_COND_V_MSG(!node || !node->has_node(p_path), nullptr, vformat("Node '%s' not found.", p_path));
+	return node->get_node(p_path);
+}
+
 Error SceneReplicationInterface::on_replication_start(Object *p_obj, Variant p_config) {
 	Node *node = Object::cast_to<Node>(p_obj);
 	ERR_FAIL_COND_V(!node || p_config.get_type() != Variant::OBJECT, ERR_INVALID_PARAMETER);
-	MultiplayerSynchronizer *sync = Object::cast_to<MultiplayerSynchronizer>(p_config.get_validated_object());
+	Node *sync = Object::cast_to<Node>(p_config.get_validated_object());
 	ERR_FAIL_COND_V(!sync, ERR_INVALID_PARAMETER);
 	rep_state->config_add_sync(node, sync);
 	// Try to apply initial state if spawning (hack to apply if before ready).
 	if (pending_spawn == p_obj->get_instance_id()) {
 		pending_spawn = ObjectID(); // Make sure this only happens once.
-		const List<NodePath> props = sync->get_replication_config()->get_spawn_properties();
+		Ref<SceneReplicationConfig> cfg = sync->call(SNAME("get_replication_config"));
+		const List<NodePath> props = cfg->get_spawn_properties();
 		Vector<Variant> vars;
 		vars.resize(props.size());
 		int consumed;
 		Error err = MultiplayerAPI::decode_and_decompress_variants(vars, pending_buffer, pending_buffer_size, consumed);
 		ERR_FAIL_COND_V(err, err);
-		err = MultiplayerSynchronizer::set_state(props, node, vars);
+		ERR_FAIL_COND_V(!p_obj, ERR_INVALID_PARAMETER);
+		int i = 0;
+		for (const NodePath &prop : props) {
+			Object *obj = _get_prop_target(node, prop);
+			ERR_FAIL_COND_V(!obj, FAILED);
+			obj->set(prop.get_concatenated_subnames(), vars[i]);
+			i += 1;
+		}
+		err = OK;
 		ERR_FAIL_COND_V(err, err);
 	} else if (multiplayer->has_multiplayer_peer() && sync->is_multiplayer_authority()) {
 		// Either it's a spawn or a static sync, in any case add it to the list of known nodes.
@@ -158,7 +176,7 @@ Error SceneReplicationInterface::_send_raw(const uint8_t *p_buffer, int p_size, 
 	return peer->put_packet(p_buffer, p_size);
 }
 
-Error SceneReplicationInterface::_send_spawn(Node *p_node, MultiplayerSpawner *p_spawner, int p_peer) {
+Error SceneReplicationInterface::_send_spawn(Node *p_node, Node *p_spawner, int p_peer) {
 	ERR_FAIL_COND_V(p_peer < 0, ERR_BUG);
 	ERR_FAIL_COND_V(!multiplayer, ERR_BUG);
 	ERR_FAIL_COND_V(!p_spawner || !p_node, ERR_BUG);
@@ -166,10 +184,10 @@ Error SceneReplicationInterface::_send_spawn(Node *p_node, MultiplayerSpawner *p
 	const ObjectID oid = p_node->get_instance_id();
 	uint32_t nid = rep_state->ensure_net_id(oid);
 
-	// Prepare custom arg and scene_id
-	uint8_t scene_id = p_spawner->find_spawnable_scene_index_from_object(oid);
-	bool is_custom = scene_id == MultiplayerSpawner::INVALID_ID;
-	Variant spawn_arg = p_spawner->get_spawn_argument(oid);
+	// Prepare scene_index and custom arg
+	uint32_t scene_index = p_spawner->call(SNAME("get_spawned_scene_index"), p_node);
+	bool is_custom = scene_index == 0xFFFFFFFF;
+	Variant spawn_arg = p_spawner->call(SNAME("get_spawned_custom_data"), p_node);
 	int spawn_arg_size = 0;
 	if (is_custom) {
 		Error err = MultiplayerAPI::encode_and_compress_variant(spawn_arg, nullptr, spawn_arg_size, false);
@@ -180,10 +198,26 @@ Error SceneReplicationInterface::_send_spawn(Node *p_node, MultiplayerSpawner *p
 	int state_size = 0;
 	Vector<Variant> state_vars;
 	Vector<const Variant *> state_varp;
-	MultiplayerSynchronizer *synchronizer = rep_state->get_synchronizer(oid);
-	if (synchronizer && synchronizer->get_replication_config().is_valid()) {
-		const List<NodePath> props = synchronizer->get_replication_config()->get_spawn_properties();
-		Error err = MultiplayerSynchronizer::get_state(props, p_node, state_vars, state_varp);
+	Node *synchronizer = rep_state->get_synchronizer(oid);
+	if (synchronizer && Ref<SceneReplicationConfig>(synchronizer->call(SNAME("get_replication_config"))).is_valid()) {
+		Ref<SceneReplicationConfig> cfg = synchronizer->call(SNAME("get_replication_config"));
+		const List<NodePath> props = cfg->get_spawn_properties();
+		Error err;
+		ERR_FAIL_COND_V(!p_node, ERR_INVALID_PARAMETER);
+		state_vars.resize(props.size());
+		state_varp.resize(state_vars.size());
+		int i = 0;
+		for (const NodePath &prop : props) {
+			bool valid = false;
+			const Object *obj = _get_prop_target(p_node, prop);
+			ERR_FAIL_COND_V(!obj, FAILED);
+			state_vars.write[i] = obj->get(prop.get_concatenated_subnames(), &valid);
+			state_varp.write[i] = &state_vars[i];
+			ERR_FAIL_COND_V_MSG(!valid, ERR_INVALID_DATA, vformat("Property '%s' not found.", prop));
+			i++;
+		}
+		err = OK;
+
 		ERR_FAIL_COND_V_MSG(err != OK, err, "Unable to retrieve spawn state.");
 		err = MultiplayerAPI::encode_and_compress_variants(state_varp.ptrw(), state_varp.size(), nullptr, state_size);
 		ERR_FAIL_COND_V_MSG(err != OK, err, "Unable to encode spawn state.");
@@ -201,8 +235,8 @@ Error SceneReplicationInterface::_send_spawn(Node *p_node, MultiplayerSpawner *p
 	MAKE_ROOM(1 + 1 + 4 + 4 + 4 + nlen + (is_custom ? 4 + spawn_arg_size : 0) + state_size);
 	uint8_t *ptr = packet_cache.ptrw();
 	ptr[0] = (uint8_t)MultiplayerAPI::NETWORK_COMMAND_SPAWN;
-	ptr[1] = scene_id;
-	int ofs = 2;
+	int ofs = 1;
+	ofs += encode_uint32(scene_index, &ptr[ofs]);
 	ofs += encode_uint32(path_id, &ptr[ofs]);
 	ofs += encode_uint32(nid, &ptr[ofs]);
 	ofs += encode_uint32(nlen, &ptr[ofs]);
@@ -241,11 +275,11 @@ Error SceneReplicationInterface::_send_despawn(Node *p_node, int p_peer) {
 Error SceneReplicationInterface::on_spawn_receive(int p_from, const uint8_t *p_buffer, int p_buffer_len) {
 	ERR_FAIL_COND_V_MSG(p_buffer_len < 14, ERR_INVALID_DATA, "Invalid spawn packet received");
 	int ofs = 1; // The spawn/despawn command.
-	uint8_t scene_id = p_buffer[ofs];
-	ofs += 1;
+	uint32_t scene_id = decode_uint32(&p_buffer[ofs]);
+	ofs += 4;
 	uint32_t node_target = decode_uint32(&p_buffer[ofs]);
 	ofs += 4;
-	MultiplayerSpawner *spawner = Object::cast_to<MultiplayerSpawner>(multiplayer->get_cached_object(p_from, node_target));
+	Node *spawner = Object::cast_to<Node>(multiplayer->get_cached_object(p_from, node_target));
 	ERR_FAIL_COND_V(!spawner, ERR_DOES_NOT_EXIST);
 	ERR_FAIL_COND_V(p_from != spawner->get_multiplayer_authority(), ERR_UNAUTHORIZED);
 
@@ -262,12 +296,12 @@ Error SceneReplicationInterface::on_spawn_receive(int p_from, const uint8_t *p_b
 	ofs += name_len;
 
 	// Check that we can spawn.
-	Node *parent = spawner->get_node_or_null(spawner->get_spawn_path());
+	Node *parent = spawner->get_node_or_null(spawner->call(SNAME("get_spawn_path")));
 	ERR_FAIL_COND_V(!parent, ERR_UNCONFIGURED);
 	ERR_FAIL_COND_V(parent->has_node(name), ERR_INVALID_DATA);
 
 	Node *node = nullptr;
-	if (scene_id == MultiplayerSpawner::INVALID_ID) {
+	if (scene_id == 0xFFFFFFFF) {
 		// Custom spawn.
 		ERR_FAIL_COND_V(p_buffer_len - ofs < 4, ERR_INVALID_DATA);
 		uint32_t arg_size = decode_uint32(&p_buffer[ofs]);
@@ -277,10 +311,10 @@ Error SceneReplicationInterface::on_spawn_receive(int p_from, const uint8_t *p_b
 		Error err = MultiplayerAPI::decode_and_decompress_variant(v, &p_buffer[ofs], arg_size, nullptr, false);
 		ERR_FAIL_COND_V(err != OK, err);
 		ofs += arg_size;
-		node = spawner->instantiate_custom(v);
+		node = Object::cast_to<Node>(spawner->call(SNAME("instantiate_custom"), v));
 	} else {
 		// Scene based spawn.
-		node = spawner->instantiate_scene(scene_id);
+		node = Object::cast_to<Node>(spawner->call(SNAME("instantiate_scene"), scene_id));
 	}
 	ERR_FAIL_COND_V(!node, ERR_UNAUTHORIZED);
 	node->set_name(name);
@@ -331,15 +365,32 @@ void SceneReplicationInterface::_send_sync(int p_peer, uint64_t p_msec) {
 		if (!rep_state->update_sync_time(oid, p_msec)) {
 			continue; // nothing to sync.
 		}
-		MultiplayerSynchronizer *sync = rep_state->get_synchronizer(oid);
+		Node *sync = rep_state->get_synchronizer(oid);
 		ERR_CONTINUE(!sync);
 		Node *node = rep_state->get_node(oid);
 		ERR_CONTINUE(!node);
 		int size;
 		Vector<Variant> vars;
 		Vector<const Variant *> varp;
-		const List<NodePath> props = sync->get_replication_config()->get_sync_properties();
-		Error err = MultiplayerSynchronizer::get_state(props, node, vars, varp);
+		Ref<SceneReplicationConfig> cfg = sync->call(SNAME("get_replication_config"));
+		const List<NodePath> props = cfg->get_sync_properties();
+
+		Error err;
+
+		vars.resize(props.size());
+		varp.resize(vars.size());
+		int i = 0;
+		for (const NodePath &prop : props) {
+			bool valid = false;
+			const Object *obj = _get_prop_target(node, prop);
+			ERR_FAIL_COND(!obj);
+			vars.write[i] = obj->get(prop.get_concatenated_subnames(), &valid);
+			varp.write[i] = &vars[i];
+			ERR_FAIL_COND_MSG(!valid, vformat("Property '%s' not found.", prop));
+			i++;
+		}
+		err = OK;
+
 		ERR_CONTINUE_MSG(err != OK, "Unable to retrieve sync state.");
 		err = MultiplayerAPI::encode_and_compress_variants(varp.ptrw(), varp.size(), nullptr, size);
 		ERR_CONTINUE_MSG(err != OK, "Unable to encode sync state.");
@@ -402,16 +453,24 @@ Error SceneReplicationInterface::on_sync_receive(int p_from, const uint8_t *p_bu
 			ofs += size;
 			continue;
 		}
-		MultiplayerSynchronizer *sync = rep_state->get_synchronizer(oid);
+		Node *sync = rep_state->get_synchronizer(oid);
 		ERR_FAIL_COND_V(!sync, ERR_BUG);
 		ERR_FAIL_COND_V(size > uint32_t(p_buffer_len - ofs), ERR_BUG);
-		const List<NodePath> props = sync->get_replication_config()->get_sync_properties();
+		Ref<SceneReplicationConfig> cfg = sync->call(SNAME("get_replication_config"));
+		const List<NodePath> props = cfg->get_sync_properties();
 		Vector<Variant> vars;
 		vars.resize(props.size());
 		int consumed;
 		Error err = MultiplayerAPI::decode_and_decompress_variants(vars, &p_buffer[ofs], size, consumed);
 		ERR_FAIL_COND_V(err, err);
-		err = MultiplayerSynchronizer::set_state(props, node, vars);
+		int i = 0;
+		for (const NodePath &prop : props) {
+			Object *obj = _get_prop_target(node, prop);
+			ERR_FAIL_COND_V(!obj, FAILED);
+			obj->set(prop.get_concatenated_subnames(), vars[i]);
+			i += 1;
+		}
+		err = OK;
 		ERR_FAIL_COND_V(err, err);
 		ofs += size;
 	}

@@ -33,15 +33,6 @@
 #include "core/config/engine.h"
 #include "core/multiplayer/multiplayer_api.h"
 
-Object *MultiplayerSynchronizer::_get_prop_target(Object *p_obj, const NodePath &p_path) {
-	if (p_path.get_name_count() == 0) {
-		return p_obj;
-	}
-	Node *node = Object::cast_to<Node>(p_obj);
-	ERR_FAIL_COND_V_MSG(!node || !node->has_node(p_path), nullptr, vformat("Node '%s' not found.", p_path));
-	return node->get_node(p_path);
-}
-
 void MultiplayerSynchronizer::_stop() {
 	Node *node = is_inside_tree() ? get_node_or_null(root_path) : nullptr;
 	if (node) {
@@ -54,35 +45,6 @@ void MultiplayerSynchronizer::_start() {
 	if (node) {
 		get_multiplayer()->replication_start(node, this);
 	}
-}
-
-Error MultiplayerSynchronizer::get_state(const List<NodePath> &p_properties, Object *p_obj, Vector<Variant> &r_variant, Vector<const Variant *> &r_variant_ptrs) {
-	ERR_FAIL_COND_V(!p_obj, ERR_INVALID_PARAMETER);
-	r_variant.resize(p_properties.size());
-	r_variant_ptrs.resize(r_variant.size());
-	int i = 0;
-	for (const NodePath &prop : p_properties) {
-		bool valid = false;
-		const Object *obj = _get_prop_target(p_obj, prop);
-		ERR_FAIL_COND_V(!obj, FAILED);
-		r_variant.write[i] = obj->get(prop.get_concatenated_subnames(), &valid);
-		r_variant_ptrs.write[i] = &r_variant[i];
-		ERR_FAIL_COND_V_MSG(!valid, ERR_INVALID_DATA, vformat("Property '%s' not found.", prop));
-		i++;
-	}
-	return OK;
-}
-
-Error MultiplayerSynchronizer::set_state(const List<NodePath> &p_properties, Object *p_obj, const Vector<Variant> &p_state) {
-	ERR_FAIL_COND_V(!p_obj, ERR_INVALID_PARAMETER);
-	int i = 0;
-	for (const NodePath &prop : p_properties) {
-		Object *obj = _get_prop_target(p_obj, prop);
-		ERR_FAIL_COND_V(!obj, FAILED);
-		obj->set(prop.get_concatenated_subnames(), p_state[i]);
-		i += 1;
-	}
-	return OK;
 }
 
 void MultiplayerSynchronizer::_bind_methods() {

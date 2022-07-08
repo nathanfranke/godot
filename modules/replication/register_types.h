@@ -1,5 +1,5 @@
 /*************************************************************************/
-/*  multiplayer_synchronizer.h                                           */
+/*  register_types.h                                                     */
 /*************************************************************************/
 /*                       This file is part of:                           */
 /*                           GODOT ENGINE                                */
@@ -28,41 +28,12 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef MULTIPLAYER_SYNCHRONIZER_H
-#define MULTIPLAYER_SYNCHRONIZER_H
+#ifndef REPLICATION_REGISTER_TYPES_H
+#define REPLICATION_REGISTER_TYPES_H
 
-#include "scene/main/node.h"
+#include "modules/register_module_types.h"
 
-#include "scene/resources/scene_replication_config.h"
+void initialize_replication_module(ModuleInitializationLevel p_level);
+void uninitialize_replication_module(ModuleInitializationLevel p_level);
 
-class MultiplayerSynchronizer : public Node {
-	GDCLASS(MultiplayerSynchronizer, Node);
-
-private:
-	Ref<SceneReplicationConfig> replication_config;
-	NodePath root_path = NodePath(".."); // Start with parent, like with AnimationPlayer.
-	uint64_t interval_msec = 0;
-
-	void _start();
-	void _stop();
-
-protected:
-	static void _bind_methods();
-	void _notification(int p_what);
-
-public:
-	void set_replication_interval(double p_interval);
-	double get_replication_interval() const;
-	uint64_t get_replication_interval_msec() const;
-
-	void set_replication_config(Ref<SceneReplicationConfig> p_config);
-	Ref<SceneReplicationConfig> get_replication_config();
-
-	void set_root_path(const NodePath &p_path);
-	NodePath get_root_path() const;
-	virtual void set_multiplayer_authority(int p_peer_id, bool p_recursive = true) override;
-
-	MultiplayerSynchronizer() {}
-};
-
-#endif // MULTIPLAYER_SYNCHRONIZER_H
+#endif // REPLICATION_REGISTER_TYPES_H
