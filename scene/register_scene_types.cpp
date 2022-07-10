@@ -858,8 +858,6 @@ void register_scene_types() {
 
 	GDREGISTER_CLASS(Curve);
 
-	GDREGISTER_CLASS(SceneReplicationConfig);
-
 	GDREGISTER_CLASS(TextLine);
 	GDREGISTER_CLASS(TextParagraph);
 
@@ -1100,7 +1098,6 @@ void register_scene_types() {
 	}
 
 	SceneDebugger::initialize();
-	SceneReplicationInterface::make_default();
 	SceneRPCInterface::make_default();
 	SceneCacheInterface::make_default();
 }

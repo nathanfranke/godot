@@ -28,7 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "scene/multiplayer/scene_replication_state.h"
+/*#include "scene/multiplayer/scene_replication_state.h"
 
 #include "core/multiplayer/multiplayer_api.h"
 #include "scene/multiplayer/multiplayer_spawner.h"
@@ -251,4 +251,4 @@ uint16_t SceneReplicationState::peer_sync_next(int p_peer) {
 void SceneReplicationState::peer_sync_recv(int p_peer, uint16_t p_time) {
 	ERR_FAIL_COND(!peers_info.has(p_peer));
 	peers_info[p_peer].last_recv_sync = p_time;
-}
+}*/

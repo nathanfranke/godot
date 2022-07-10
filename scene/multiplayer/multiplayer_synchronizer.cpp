@@ -28,7 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#include "multiplayer_synchronizer.h"
+/*#include "multiplayer_synchronizer.h"
 
 #include "core/config/engine.h"
 #include "core/multiplayer/multiplayer_api.h"
@@ -123,4 +123,4 @@ void MultiplayerSynchronizer::set_multiplayer_authority(int p_peer_id, bool p_re
 	get_multiplayer()->replication_stop(node, this);
 	Node::set_multiplayer_authority(p_peer_id, p_recursive);
 	get_multiplayer()->replication_start(node, this);
-}
+}*/

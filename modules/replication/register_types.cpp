@@ -32,6 +32,9 @@
 #include "core/object/class_db.h"
 
 #include "multiplayer_spawner.h"
+#include "multiplayer_synchronizer.h"
+#include "replication_editor_plugin.h"
+#include "scene_replication_config.h"
 
 void initialize_replication_module(ModuleInitializationLevel p_level) {
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
@@ -39,6 +42,12 @@ void initialize_replication_module(ModuleInitializationLevel p_level) {
 	}
 
 	GDREGISTER_CLASS(MultiplayerSpawner);
+	GDREGISTER_CLASS(MultiplayerSynchronizer);
+	GDREGISTER_CLASS(SceneReplicationConfig);
+
+#ifdef TOOLS_ENABLED
+	EditorPlugins::add_by_type<ReplicationEditorPlugin>();
+#endif
 }
 
 void uninitialize_replication_module(ModuleInitializationLevel p_level) {

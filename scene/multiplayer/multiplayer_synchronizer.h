@@ -28,7 +28,7 @@
 /* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                */
 /*************************************************************************/
 
-#ifndef MULTIPLAYER_SYNCHRONIZER_H
+/*#ifndef MULTIPLAYER_SYNCHRONIZER_H
 #define MULTIPLAYER_SYNCHRONIZER_H
 
 #include "scene/main/node.h"
@@ -65,4 +65,4 @@ public:
 	MultiplayerSynchronizer() {}
 };
 
-#endif // MULTIPLAYER_SYNCHRONIZER_H
+#endif // MULTIPLAYER_SYNCHRONIZER_H*/

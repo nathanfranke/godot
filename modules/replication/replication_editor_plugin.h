@@ -32,11 +32,11 @@
 #define REPLICATION_EDITOR_PLUGIN_H
 
 #include "editor/editor_plugin.h"
-#include "scene/resources/scene_replication_config.h"
-
 #include "editor/editor_spin_slider.h"
 #include "editor/property_editor.h"
 #include "editor/property_selector.h"
+
+#include "scene_replication_config.h"
 
 class ConfirmationDialog;
 class MultiplayerSynchronizer;

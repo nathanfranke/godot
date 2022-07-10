@@ -7065,7 +7065,6 @@ EditorNode::EditorNode() {
 
 	// More visually meaningful to have this later.
 	raise_bottom_panel_item(AnimationPlayerEditor::get_singleton());
-	add_editor_plugin(memnew(ReplicationEditorPlugin));
 
 	add_editor_plugin(VersionControlEditorPlugin::get_singleton());
 	add_editor_plugin(memnew(ShaderEditorPlugin));

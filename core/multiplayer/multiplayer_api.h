@@ -93,9 +93,6 @@ public:
 		NETWORK_COMMAND_SIMPLIFY_PATH,
 		NETWORK_COMMAND_CONFIRM_PATH,
 		NETWORK_COMMAND_RAW,
-		NETWORK_COMMAND_SPAWN,
-		NETWORK_COMMAND_DESPAWN,
-		NETWORK_COMMAND_SYNC,
 	};
 
 	// For each command, the 4 MSB can contain custom flags, as defined by subsystems.
