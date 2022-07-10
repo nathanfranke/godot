@@ -37,24 +37,6 @@
 
 class MultiplayerAPI;
 
-class MultiplayerReplicationInterface : public RefCounted {
-	GDCLASS(MultiplayerReplicationInterface, RefCounted);
-
-public:
-	virtual void on_peer_change(int p_id, bool p_connected) {}
-	virtual void on_reset() {}
-	virtual Error on_spawn_receive(int p_from, const uint8_t *p_buffer, int p_buffer_len) { return ERR_UNAVAILABLE; }
-	virtual Error on_despawn_receive(int p_from, const uint8_t *p_buffer, int p_buffer_len) { return ERR_UNAVAILABLE; }
-	virtual Error on_sync_receive(int p_from, const uint8_t *p_buffer, int p_buffer_len) { return ERR_UNAVAILABLE; }
-	virtual Error on_spawn(Object *p_obj, Variant p_config) { return ERR_UNAVAILABLE; }
-	virtual Error on_despawn(Object *p_obj, Variant p_config) { return ERR_UNAVAILABLE; }
-	virtual Error on_replication_start(Object *p_obj, Variant p_config) { return ERR_UNAVAILABLE; }
-	virtual Error on_replication_stop(Object *p_obj, Variant p_config) { return ERR_UNAVAILABLE; }
-	virtual void on_network_process() {}
-
-	MultiplayerReplicationInterface() {}
-};
-
 class MultiplayerRPCInterface : public RefCounted {
 	GDCLASS(MultiplayerRPCInterface, RefCounted);
 
@@ -120,7 +102,6 @@ private:
 	bool allow_object_decoding = false;
 
 	Ref<MultiplayerCacheInterface> cache;
-	Ref<MultiplayerReplicationInterface> replicator;
 	Ref<MultiplayerRPCInterface> rpc;
 
 protected:
@@ -130,7 +111,6 @@ protected:
 	void _process_raw(int p_from, const uint8_t *p_packet, int p_packet_len);
 
 public:
-	static MultiplayerReplicationInterface *(*create_default_replication_interface)(MultiplayerAPI *p_multiplayer);
 	static MultiplayerRPCInterface *(*create_default_rpc_interface)(MultiplayerAPI *p_multiplayer);
 	static MultiplayerCacheInterface *(*create_default_cache_interface)(MultiplayerAPI *p_multiplayer);
 
@@ -151,11 +131,6 @@ public:
 	// RPC API
 	void rpcp(Object *p_obj, int p_peer_id, const StringName &p_method, const Variant **p_arg, int p_argcount);
 	String get_rpc_md5(const Object *p_obj) const;
-	// Replication API
-	Error spawn(Object *p_object, Variant p_config);
-	Error despawn(Object *p_object, Variant p_config);
-	Error replication_start(Object *p_object, Variant p_config);
-	Error replication_stop(Object *p_object, Variant p_config);
 	// Cache API
 	bool send_object_cache(Object *p_obj, NodePath p_path, int p_target, int &p_id);
 	Object *get_cached_object(int p_from, uint32_t p_cache_id);
