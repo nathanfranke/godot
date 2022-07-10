@@ -66,7 +66,7 @@ protected:
 
 	void _update_root_node();
 
-	Array _create_payload(const SynchronizeAction p_action);
+	bool _create_payload(const SynchronizeAction p_action, Array &r_payload);
 	void _apply_payload(const Array &p_payload);
 
 	void _on_root_ready();

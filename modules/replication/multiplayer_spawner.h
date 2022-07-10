@@ -73,7 +73,7 @@ protected:
 	void _update_spawn_node();
 	void _on_child_added(Node *p_node);
 
-	Array _create_spawn_payloads(Node *p_node) const;
+	void _create_spawn_payloads(Node *p_node, Array &r_payloads) const;
 	int _apply_spawn_payloads(Node *p_node, const Array &p_payloads, int p_index = 0) const;
 
 	void _track(Node *p_node, const int p_scene_index, const Variant &p_custom_data);

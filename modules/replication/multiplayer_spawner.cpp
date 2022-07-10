@@ -63,7 +63,7 @@ void MultiplayerSpawner::_bind_methods() {
 
 void MultiplayerSpawner::_notification(int p_what) {
 	switch (p_what) {
-		case NOTIFICATION_READY: {
+		case NOTIFICATION_POST_ENTER_TREE: {
 			_update_spawn_node();
 
 			get_multiplayer()->connect(SNAME("peer_connected"), callable_mp(this, &MultiplayerSpawner::_on_peer_connected));
@@ -159,7 +159,9 @@ void MultiplayerSpawner::_update_spawn_node() {
 }
 
 void MultiplayerSpawner::_on_child_added(Node *p_node) {
-	if (!get_multiplayer()->has_multiplayer_peer() || !is_multiplayer_authority()) {
+	if (!get_multiplayer()->has_multiplayer_peer() ||
+			get_multiplayer()->get_multiplayer_peer()->get_connection_status() != MultiplayerPeer::CONNECTION_CONNECTED ||
+			!is_multiplayer_authority()) {
 		return;
 	}
 	if (tracked_nodes.has(p_node)) {
@@ -179,9 +181,7 @@ void MultiplayerSpawner::_on_child_added(Node *p_node) {
 	}
 }
 
-Array MultiplayerSpawner::_create_spawn_payloads(Node *p_node) const {
-	Array payloads;
-
+void MultiplayerSpawner::_create_spawn_payloads(Node *p_node, Array &r_payloads) const {
 	for (int i = 0; i < p_node->get_child_count(); ++i) {
 		Node *child = p_node->get_child(i);
 
@@ -190,15 +190,15 @@ Array MultiplayerSpawner::_create_spawn_payloads(Node *p_node) const {
 			// Do not re-send sync when synchronizer is ready.
 			sync->spawn_synced = true;
 
-			Array payload = sync->_create_payload(MultiplayerSynchronizer::READY);
-			payloads.push_back(payload);
+			Array payload;
+			sync->_create_payload(MultiplayerSynchronizer::READY, payload);
+
+			// Always add, even if an empty payload.
+			r_payloads.push_back(payload);
 		}
 
-		Array extra = _create_spawn_payloads(child);
-		payloads.append_array(extra);
+		_create_spawn_payloads(child, r_payloads);
 	}
-
-	return payloads;
 }
 
 int MultiplayerSpawner::_apply_spawn_payloads(Node *p_node, const Array &p_payloads, int p_index) const {
@@ -219,7 +219,6 @@ int MultiplayerSpawner::_apply_spawn_payloads(Node *p_node, const Array &p_paylo
 void MultiplayerSpawner::_track(Node *p_node, const int p_scene_index, const Variant &p_custom_data) {
 	ERR_FAIL_COND_MSG(tracked_nodes.has(p_node), "Node is already being tracked.");
 
-	print_line("spawner: connecting to ready signal of " + p_node->get_name());
 	p_node->connect(SceneStringNames::get_singleton()->ready, callable_mp(this, &MultiplayerSpawner::_spawn_tracked_node), varray(p_node, p_scene_index, p_custom_data), CONNECT_ONESHOT);
 	p_node->connect(SceneStringNames::get_singleton()->tree_exiting, callable_mp(this, &MultiplayerSpawner::_despawn_tracked_node), varray(p_node), CONNECT_ONESHOT);
 }
@@ -232,9 +231,9 @@ void MultiplayerSpawner::_spawn_tracked_node(Node *p_node, const int p_scene_ind
 
 	spawned_nodes.push_back(p_node);
 
-	const Array payloads = _create_spawn_payloads(p_node);
+	Array payloads;
+	_create_spawn_payloads(p_node, payloads);
 
-	print_line("received signal ready... SENDING SPAWN RPC... " + p_node->get_name());
 	rpc(SNAME("__internal_rpc_spawn"), p_node->get_name(), p_scene_index, p_custom_data, payloads);
 }
 
@@ -257,7 +256,8 @@ void MultiplayerSpawner::_on_peer_connected(const int p_peer) {
 			continue;
 		}
 
-		const Array payloads = _create_spawn_payloads(node);
+		Array payloads;
+		_create_spawn_payloads(node, payloads);
 
 		rpc_id(p_peer, SNAME("__internal_rpc_spawn"), node->get_name(), info->scene_index, info->custom_data, payloads);
 	}
@@ -267,8 +267,6 @@ void MultiplayerSpawner::_on_peer_disconnected(const int p_peer) {
 }
 
 void MultiplayerSpawner::__internal_rpc_spawn(const String &p_name, const int p_scene_index, const Variant &p_custom_data, const Array &p_payloads) {
-	print_line("Received RPC to spawn " + p_name + " ;; " + String(Variant(p_scene_index)) + " data " + String(p_custom_data));
-
 	Node *node;
 	if (p_scene_index != CUSTOM_SCENE_INDEX) {
 		node = instantiate_scene(p_scene_index);
@@ -276,7 +274,8 @@ void MultiplayerSpawner::__internal_rpc_spawn(const String &p_name, const int p_
 		node = instantiate_custom(p_custom_data);
 	}
 
-	_apply_spawn_payloads(node, p_payloads);
+	int index = _apply_spawn_payloads(node, p_payloads);
+	ERR_FAIL_COND_MSG(index != p_payloads.size(), "Spawn synchronization failed. The server and client have different configurations!");
 
 	node->set_name(p_name);
 	spawn_node->add_child(node);
@@ -285,16 +284,12 @@ void MultiplayerSpawner::__internal_rpc_spawn(const String &p_name, const int p_
 }
 
 void MultiplayerSpawner::__internal_rpc_despawn(const int p_index) {
-	print_line("Received RPC to despawn at " + String(Variant(p_index)));
-
 	ERR_FAIL_INDEX(p_index, spawned_nodes.size());
 
 	Node *node = spawned_nodes[p_index];
 	ERR_FAIL_NULL(node);
 
 	spawned_nodes.remove_at(p_index);
-
-	print_line("Despawning " + node->get_name());
 
 	spawn_node->remove_child(node);
 	node->queue_delete();

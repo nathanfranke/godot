@@ -58,7 +58,6 @@ void MultiplayerSynchronizer::_notification(int p_what) {
 			_update_root_node();
 
 			if (root_node != nullptr) {
-				print_line("synchronizer: connecting to ready signal of " + root_node->get_name());
 				// Deferred signal to ensure the spawn was handled first.
 				root_node->connect(SceneStringNames::get_singleton()->ready, callable_mp(this, &MultiplayerSynchronizer::_on_root_ready), varray(), CONNECT_DEFERRED | CONNECT_ONESHOT);
 			}
@@ -91,65 +90,71 @@ void MultiplayerSynchronizer::_update_root_node() {
 	root_node = is_inside_tree() ? get_node_or_null(root_path) : nullptr;
 }
 
-Array MultiplayerSynchronizer::_create_payload(const SynchronizeAction p_action) {
-	Array payload;
+bool MultiplayerSynchronizer::_create_payload(const SynchronizeAction p_action, Array &r_payload) {
+	bool has_values = false;
+	r_payload.push_back(p_action);
 
+	List<NodePath> properties;
 	switch (p_action) {
 		case READY: {
-			for (const NodePath &path : replication_config->get_spawn_properties()) {
-				Node *node;
-				StringName prop;
-				const bool found_node = _get_path_target(path, node, prop);
-				ERR_CONTINUE(!found_node);
-
-				Variant value = node->get(prop);
-
-				payload.push_back(path);
-				payload.push_back(value);
-			}
+			properties = replication_config->get_spawn_properties();
 		} break;
 		case SYNC: {
-			for (const NodePath &path : replication_config->get_sync_properties()) {
-				Node *node;
-				StringName prop;
-				const bool found_node = _get_path_target(path, node, prop);
-				ERR_CONTINUE(!found_node);
-
-				Variant value = node->get(prop);
-
-				payload.push_back(path);
-				payload.push_back(value);
-			}
+			properties = replication_config->get_sync_properties();
 		} break;
 	}
 
-	return payload;
-}
-
-void MultiplayerSynchronizer::_apply_payload(const Array &p_payload) {
-	// TODO: Validation
-	for (int i = 0; i < p_payload.size();) {
-		NodePath path = p_payload[i++];
-		Variant value = p_payload[i++];
-
+	for (const NodePath &path : properties) {
 		Node *node;
 		StringName prop;
 		const bool found_node = _get_path_target(path, node, prop);
 		ERR_CONTINUE(!found_node);
 
+		Variant value = node->get(prop);
+
+		r_payload.push_back(value);
+		has_values = true;
+	}
+
+	return has_values;
+}
+
+void MultiplayerSynchronizer::_apply_payload(const Array &p_payload) {
+	int index = 0;
+
+	const int action = p_payload[index++];
+
+	List<NodePath> properties;
+	switch (action) {
+		case READY: {
+			properties = replication_config->get_spawn_properties();
+		} break;
+		case SYNC: {
+			properties = replication_config->get_sync_properties();
+		} break;
+		default: {
+			ERR_FAIL_MSG("Invalid action type: " + itos(action));
+		} break;
+	}
+
+	for (const NodePath &path : properties) {
+		Node *node;
+		StringName prop;
+		const bool found_node = _get_path_target(path, node, prop);
+		ERR_CONTINUE(!found_node);
+
+		Variant value = p_payload[index++];
 		node->set(prop, value);
 	}
+
+	ERR_FAIL_COND_MSG(index != p_payload.size(), "Synchronization failed. The server and client have different configurations!");
 }
 
 void MultiplayerSynchronizer::_on_root_ready() {
 	if (spawn_synced) {
-		print_line("Skipping spawn sync... already done!");
 		return;
 	}
 
-	if (get_multiplayer()->has_multiplayer_peer() && is_multiplayer_authority()) {
-		print_line("Synchronizer received root ready signal. SENDING SYNC RPC...");
-	}
 	synchronize(READY);
 }
 
@@ -160,8 +165,6 @@ void MultiplayerSynchronizer::_on_peer_disconnected(const int p_peer) {
 }
 
 void MultiplayerSynchronizer::__internal_rpc_synchronize(const Array &p_payload) {
-	print_line("Recieved synchronize RPC (Size: " + String(Variant(p_payload.size())) + ")");
-
 	_apply_payload(p_payload);
 }
 
@@ -197,16 +200,18 @@ void MultiplayerSynchronizer::synchronize(const SynchronizeAction p_action, cons
 	}
 #endif
 
-	if (!get_multiplayer()->has_multiplayer_peer() || !is_multiplayer_authority()) {
+	if (!get_multiplayer()->has_multiplayer_peer() ||
+			get_multiplayer()->get_multiplayer_peer()->get_connection_status() != MultiplayerPeer::CONNECTION_CONNECTED ||
+			!is_multiplayer_authority()) {
 		return;
 	}
 
 	ERR_FAIL_NULL(replication_config);
 
-	Array payload = _create_payload(p_action);
+	Array payload;
+	bool payload_has_values = _create_payload(p_action, payload);
 
-	//print_line("Payload: " + String(Variant(payload)));
-	if (!payload.is_empty()) {
+	if (payload_has_values) {
 		rpc_id(p_peer, SNAME("__internal_rpc_synchronize"), payload);
 	}
 }
