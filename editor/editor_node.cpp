@@ -1603,26 +1603,30 @@ void EditorNode::_save_scene_with_preview(String p_file, int p_idx) {
 		save.step(TTR("Creating Thumbnail"), 1);
 		// Current view?
 
+		Ref<EditorFeatureProfile> profile = feature_profile_manager->get_current_profile();
+
+		// Only update the previews for 2D and 3D scenes when their respective feature profiles are enabled.
 		Ref<Image> img;
-		// If neither 3D or 2D nodes are present, make a 1x1 black texture.
-		// We cannot fallback on the 2D editor, because it may not have been used yet,
-		// which would result in an invalid texture.
-		if (c3d == 0 && c2d == 0) {
-			img.instantiate();
-			img->create(1, 1, false, Image::FORMAT_RGB8);
-		} else if (c3d < c2d) {
-			Ref<ViewportTexture> viewport_texture = scene_root->get_texture();
-			if (viewport_texture->get_width() > 0 && viewport_texture->get_height() > 0) {
-				img = viewport_texture->get_image();
+		if (c3d < c2d) {
+			if (!profile.is_valid() || !profile->is_feature_disabled(EditorFeatureProfile::FEATURE_2D)) {
+				Ref<ViewportTexture> viewport_texture = scene_root->get_texture();
+				if (viewport_texture->get_width() > 0 && viewport_texture->get_height() > 0) {
+					img = viewport_texture->get_image();
+				}
 			}
-		} else {
+		} else if (c2d < c3d) {
 			// The 3D editor may be disabled as a feature, but scenes can still be opened.
 			// This check prevents the preview from regenerating in case those scenes are then saved.
 			// The preview will be generated if no feature profile is set (as the 3D editor is enabled by default).
-			Ref<EditorFeatureProfile> profile = feature_profile_manager->get_current_profile();
 			if (!profile.is_valid() || !profile->is_feature_disabled(EditorFeatureProfile::FEATURE_3D)) {
 				img = Node3DEditor::get_singleton()->get_editor_viewport(0)->get_viewport_node()->get_texture()->get_image();
 			}
+		}
+
+		// If the thumbnail is not set, make a 1x1 black texture.
+		if (img.is_null()) {
+			img.instantiate();
+			img->create(1, 1, false, Image::FORMAT_RGB8);
 		}
 
 		if (img.is_valid() && img->get_width() > 0 && img->get_height() > 0) {
@@ -1634,25 +1638,14 @@ void EditorNode::_save_scene_with_preview(String p_file, int p_idx) {
 			int preview_size = EditorSettings::get_singleton()->get("filesystem/file_dialog/thumbnail_size");
 			preview_size *= EDSCALE;
 
-			// Consider a square region.
-			int vp_size = MIN(img->get_width(), img->get_height());
-			int x = (img->get_width() - vp_size) / 2;
-			int y = (img->get_height() - vp_size) / 2;
+			// Turn the image into a square.
+			int square_size = MIN(img->get_width(), img->get_height());
+			int x = (img->get_width() - square_size) / 2;
+			int y = (img->get_height() - square_size) / 2;
+			img->crop_from_point(x, y, square_size, square_size);
 
-			if (vp_size < preview_size) {
-				// Just square it.
-				img->crop_from_point(x, y, vp_size, vp_size);
-			} else {
-				int ratio = vp_size / preview_size;
-				int size = preview_size * MAX(1, ratio / 2);
-
-				x = (img->get_width() - size) / 2;
-				y = (img->get_height() - size) / 2;
-
-				img->crop_from_point(x, y, size, size);
-				img->resize(preview_size, preview_size, Image::INTERPOLATE_LANCZOS);
-			}
-			img->convert(Image::FORMAT_RGB8);
+			// Scale it down to a thumbnail.
+			img->resize(preview_size, preview_size, Image::INTERPOLATE_LANCZOS);
 
 			// Save thumbnail directly, as thumbnailer may not update due to actual scene not changing md5.
 			String temp_path = EditorPaths::get_singleton()->get_cache_dir();
