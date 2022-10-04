@@ -584,6 +584,12 @@ void EditorNode::_update_from_settings() {
 }
 
 void EditorNode::_select_default_main_screen_plugin() {
+	if (EDITOR_3D < main_editor_buttons.size() && main_editor_buttons[EDITOR_3D]->is_visible()) {
+		// If the 3D editor is enabled, use this as the default.
+		editor_select(EDITOR_3D);
+		return;
+	}
+
 	// Switch to the first main screen plugin that is enabled. Usually this is
 	// 2D, but may be subsequent ones if 2D is disabled in the feature profile.
 	for (int i = 0; i < main_editor_buttons.size(); i++) {
@@ -1604,22 +1610,20 @@ void EditorNode::_save_scene_with_preview(String p_file, int p_idx) {
 		// Current view?
 
 		Ref<EditorFeatureProfile> profile = feature_profile_manager->get_current_profile();
+		Ref<Image> img;
 
 		// Only update the previews for 2D and 3D scenes when their respective feature profiles are enabled.
-		Ref<Image> img;
-		if (c3d < c2d) {
-			if (!profile.is_valid() || !profile->is_feature_disabled(EditorFeatureProfile::FEATURE_2D)) {
+		// Note that by default, all features are enabled, so null is a valid case.
+		/*if (c3d < c2d) {
+			if (profile.is_null() || !profile->is_feature_disabled(EditorFeatureProfile::FEATURE_2D)) {
 				Ref<ViewportTexture> viewport_texture = scene_root->get_texture();
 				if (viewport_texture->get_width() > 0 && viewport_texture->get_height() > 0) {
-					img = viewport_texture->get_image();
+					img = viewport_texture->get_image()->duplicate();
 				}
 			}
 		} else if (c2d < c3d) {
-			// The 3D editor may be disabled as a feature, but scenes can still be opened.
-			// This check prevents the preview from regenerating in case those scenes are then saved.
-			// The preview will be generated if no feature profile is set (as the 3D editor is enabled by default).
-			if (!profile.is_valid() || !profile->is_feature_disabled(EditorFeatureProfile::FEATURE_3D)) {
-				img = Node3DEditor::get_singleton()->get_editor_viewport(0)->get_viewport_node()->get_texture()->get_image();
+			if (profile.is_null() || !profile->is_feature_disabled(EditorFeatureProfile::FEATURE_3D)) {
+				img = Node3DEditor::get_singleton()->get_editor_viewport(0)->get_viewport_node()->get_texture()->get_image()->duplicate();
 			}
 		}
 
@@ -1627,11 +1631,9 @@ void EditorNode::_save_scene_with_preview(String p_file, int p_idx) {
 		if (img.is_null()) {
 			img.instantiate();
 			img->create(1, 1, false, Image::FORMAT_RGB8);
-		}
+		}*/
 
 		if (img.is_valid() && img->get_width() > 0 && img->get_height() > 0) {
-			img = img->duplicate();
-
 			save.step(TTR("Creating Thumbnail"), 2);
 			save.step(TTR("Creating Thumbnail"), 3);
 
