@@ -1625,13 +1625,13 @@ void EditorNode::_save_scene_with_preview(String p_file, int p_idx) {
 			if (profile.is_null() || !profile->is_feature_disabled(EditorFeatureProfile::FEATURE_3D)) {
 				img = Node3DEditor::get_singleton()->get_editor_viewport(0)->get_viewport_node()->get_texture()->get_image()->duplicate();
 			}
-		}
+		}*/
 
 		// If the thumbnail is not set, make a 1x1 black texture.
 		if (img.is_null()) {
 			img.instantiate();
 			img->create(1, 1, false, Image::FORMAT_RGB8);
-		}*/
+		}
 
 		if (img.is_valid() && img->get_width() > 0 && img->get_height() > 0) {
 			save.step(TTR("Creating Thumbnail"), 2);
