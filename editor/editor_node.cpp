@@ -1614,18 +1614,18 @@ void EditorNode::_save_scene_with_preview(String p_file, int p_idx) {
 
 		// Only update the previews for 2D and 3D scenes when their respective feature profiles are enabled.
 		// Note that by default, all features are enabled, so null is a valid case.
-		/*if (c3d < c2d) {
+		if (c3d < c2d) {
 			if (profile.is_null() || !profile->is_feature_disabled(EditorFeatureProfile::FEATURE_2D)) {
 				Ref<ViewportTexture> viewport_texture = scene_root->get_texture();
 				if (viewport_texture->get_width() > 0 && viewport_texture->get_height() > 0) {
 					img = viewport_texture->get_image()->duplicate();
 				}
 			}
-		} else if (c2d < c3d) {
-			if (profile.is_null() || !profile->is_feature_disabled(EditorFeatureProfile::FEATURE_3D)) {
-				img = Node3DEditor::get_singleton()->get_editor_viewport(0)->get_viewport_node()->get_texture()->get_image()->duplicate();
-			}
-		}*/
+		} /* else if (c2d < c3d) {
+			 if (profile.is_null() || !profile->is_feature_disabled(EditorFeatureProfile::FEATURE_3D)) {
+				 img = Node3DEditor::get_singleton()->get_editor_viewport(0)->get_viewport_node()->get_texture()->get_image()->duplicate();
+			 }
+		 }*/
 
 		// If the thumbnail is not set, make a 1x1 black texture.
 		if (img.is_null()) {
