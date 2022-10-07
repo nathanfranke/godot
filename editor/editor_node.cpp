@@ -1624,7 +1624,7 @@ void EditorNode::_save_scene_with_preview(String p_file, int p_idx) {
 		}  else*/
 		if (c2d < c3d) {
 			if (profile.is_null() || !profile->is_feature_disabled(EditorFeatureProfile::FEATURE_3D)) {
-				img = Node3DEditor::get_singleton()->get_editor_viewport(0)->get_viewport_node()->get_texture()->get_image()->duplicate();
+				img = Node3DEditor::get_singleton()->get_editor_viewport(0)->get_viewport_node()->get_texture()->get_image();
 			}
 		}
 
