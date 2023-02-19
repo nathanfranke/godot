@@ -83,6 +83,16 @@ TEST_CASE("[OS] Executable and data paths") {
 			"The cache path returned should be an absolute path.");
 }
 
+TEST_CASE("[OS] Get safe directory name") {
+	// Path separators ('/', '\') are only allowed if 'p_allow_paths' is true.
+	CHECK(OS::get_singleton()->get_safe_dir_name("a/b/c") == "a-b-c");
+	CHECK(OS::get_singleton()->get_safe_dir_name("a/b/c", true) == "a/b/c");
+	CHECK(OS::get_singleton()->get_safe_dir_name("a\\b\\c") == "a-b-c");
+	CHECK(OS::get_singleton()->get_safe_dir_name("a\\b\\c", true) == "a/b/c");
+	CHECK(OS::get_singleton()->get_safe_dir_name("../../secret/files.txt") == "------secret-files.txt");
+	CHECK(OS::get_singleton()->get_safe_dir_name("../../secret/files.txt", true) == "--/--/secret/files.txt");
+}
+
 TEST_CASE("[OS] Ticks") {
 	CHECK_MESSAGE(
 			OS::get_singleton()->get_ticks_usec() > 1000,
