@@ -37,7 +37,8 @@
 #include "scene/gui/file_dialog.h"
 #include "scene/gui/scroll_container.h"
 
-class CheckBox;
+//class CheckBox;
+class CheckButton;
 class EditorAssetLibrary;
 class EditorFileDialog;
 class HFlowContainer;
@@ -70,11 +71,11 @@ private:
 	Mode mode = MODE_NEW;
 	bool is_folder_empty = true;
 
-	Button *browse = nullptr;
+	Button *project_browse = nullptr;
 	Button *install_browse = nullptr;
-	Button *create_dir = nullptr;
+	CheckButton *create_dir = nullptr;
 	Container *name_container = nullptr;
-	Container *path_container = nullptr;
+	Container *project_path_container = nullptr;
 	Container *install_path_container = nullptr;
 
 	Container *renderer_container = nullptr;
@@ -97,32 +98,33 @@ private:
 
 	String zip_path;
 	String zip_title;
-	String fav_dir;
 
-	String created_folder_path;
+	void _set_message(const String &p_msg, MessageType p_type = MESSAGE_SUCCESS, InputType p_input_type = PROJECT_PATH);
 
-	void _set_message(const String &p_msg, MessageType p_type = MESSAGE_SUCCESS, InputType input_type = PROJECT_PATH);
+	String _validate_path();
 
-	String _test_path();
-	void _path_text_changed(const String &p_path);
+	String _last_target_auto_dir;
+	String _update_target_auto_dir(const String &p_path);
+
+	void _project_name_changed(const String &p_text);
+	void _project_path_changed(const String &p_text);
+	void _install_path_changed(const String &p_text);
 	void _path_selected(const String &p_path);
 	void _file_selected(const String &p_path);
 	void _install_path_selected(const String &p_path);
 
-	void _browse_path();
+	void _browse_project_path();
 	void _browse_install_path();
-	void _create_folder();
+	void _create_folder_toggled(const bool p_pressed);
 
-	void _text_changed(const String &p_text);
 	void _nonempty_confirmation_ok_pressed();
 	void _renderer_selected();
-	void _remove_created_folder();
 
 	void ok_pressed() override;
-	void cancel_pressed() override;
+	//void cancel_pressed() override;
 
 protected:
-	void _notification(int p_what);
+	//void _notification(int p_what);
 	static void _bind_methods();
 
 public:
