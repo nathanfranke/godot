@@ -62,6 +62,8 @@ private:
 	String path_cache;
 	String scene_unique_id;
 
+	Ref<Resource> inherits_state;
+
 #ifdef TOOLS_ENABLED
 	uint64_t last_modified_time = 0;
 	uint64_t import_last_modified_time = 0;
@@ -86,6 +88,15 @@ protected:
 
 	virtual void reset_local_to_scene();
 	GDVIRTUAL0(_setup_local_to_scene);
+	GDVIRTUAL1R(bool, _setup_inherits_state, Ref<Resource>);
+	GDVIRTUAL2RC(bool, _is_inherited_state_property_value_saved, const StringName &, const Variant &);
+
+	bool _property_can_revert(const StringName &p_name) const;
+	bool _property_get_revert(const StringName &p_name, Variant &r_property) const;
+	void _validate_property(PropertyInfo &p_property) const;
+
+	virtual bool is_inherited_state_property_value_saved(const StringName &p_name, const Variant &p_value) const;
+	virtual bool setup_inherits_state(const Ref<Resource> &p_resource);
 
 	GDVIRTUAL0RC(RID, _get_rid);
 
@@ -150,6 +161,10 @@ public:
 	//helps keep IDs same number when loading/saving scenes. -1 clears ID and it Returns -1 when no id stored
 	void set_id_for_path(const String &p_path, const String &p_id);
 	String get_id_for_path(const String &p_path) const;
+
+	void set_inherits_state(const Ref<Resource> &p_resource);
+	Ref<Resource> get_inherits_state() const;
+	bool is_property_value_saved(const StringName &p_property, const Variant &p_value) const;
 
 	Resource();
 	~Resource();
