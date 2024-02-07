@@ -1056,7 +1056,7 @@ void Window::_update_viewport_size() {
 	//update the viewport part
 
 	Size2i final_size;
-	Size2i final_size_override;
+	Size2 final_size_override;
 	Rect2i attach_to_screen_rect(Point2i(), size);
 	float font_oversampling = 1.0;
 	window_transform = Transform2D();
@@ -1123,7 +1123,7 @@ void Window::_update_viewport_size() {
 		}
 
 		screen_size = screen_size.floor();
-		viewport_size = viewport_size.floor();
+		//viewport_size = viewport_size.floor();
 
 		if (content_scale_stretch == Window::CONTENT_SCALE_STRETCH_INTEGER) {
 			Size2i screen_scale = (screen_size / viewport_size).floor();

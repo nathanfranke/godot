@@ -960,7 +960,7 @@ void Viewport::update_canvas_items() {
 	_update_canvas_items(this);
 }
 
-void Viewport::_set_size(const Size2i &p_size, const Size2i &p_size_2d_override, bool p_allocated) {
+void Viewport::_set_size(const Size2i &p_size, const Size2 &p_size_2d_override, bool p_allocated) {
 	Transform2D stretch_transform_new = Transform2D();
 	if (is_size_2d_override_stretch_enabled() && p_size_2d_override.width > 0 && p_size_2d_override.height > 0) {
 		Size2 scale = Size2(p_size) / Size2(p_size_2d_override);
@@ -1031,7 +1031,7 @@ Size2i Viewport::_get_size() const {
 	return size;
 }
 
-Size2i Viewport::_get_size_2d_override() const {
+Size2 Viewport::_get_size_2d_override() const {
 	return size_2d_override;
 }
 
